@@ -220,7 +220,12 @@ export function useSyncExternalStore<T>(
 	getSnapshot: () => T,
 	getServerSnapshot?: () => T,
 ): T {
-	return octaneUseSyncExternalStore(subscribe, getSnapshot, getServerSnapshot, nextCompatHookSlot());
+	return octaneUseSyncExternalStore(
+		subscribe,
+		getSnapshot,
+		getServerSnapshot,
+		nextCompatHookSlot(),
+	);
 }
 
 export function useDeferredValue<T>(value: T, initialValue?: T): T {
