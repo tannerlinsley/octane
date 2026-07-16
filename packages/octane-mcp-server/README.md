@@ -107,7 +107,8 @@ invariants, and validation commands.
 ### `octane_triage_paths`
 
 Classifies repository-relative paths by Octane area (compiler, core runtime,
-SSR, ecosystem binding, mcp-server, benchmark, docs, RuleSync source).
+SSR, ecosystem binding, react-compat, react-wrapper, vite-plugin, deploy
+adapter, evals, website, mcp-server, benchmark, docs, RuleSync source).
 
 ### `octane_validate_plan`
 
@@ -120,8 +121,11 @@ optionally writes the generated Vitest skeleton to an output file.
 
 ### `octane_benchmark`
 
-Runs a known benchmark workspace (`news`, `js-framework`, `recursive-context`,
-`signal-favoring`, `dbmon`) or all benchmarks.
+Runs benchmark suites through the unified runner (`node benchmarks/bench.mjs`):
+one manifest suite by name (`js-framework`, `todomvc`, `chat-stream`, `dbmon`,
+`news`, `ssr-throughput`, `streaming-ssr`, `codegen-size`, `bundle-size`, …) or
+every suite with `all`; `quick` selects the reduced-iteration smoke pass. The
+suite list mirrors the runner manifest and `node benchmarks/bench.mjs --list`.
 
 ### `octane_issue_context`
 

@@ -132,6 +132,47 @@ describe('bridgeReport', () => {
 		expect(report.plan.join('\n')).toContain('UNSAFE_componentWillReceiveProps');
 	});
 
+	it('lazy plus Suspense stays works-out-of-the-box', async () => {
+		const root = await mkdtemp(join(tmpdir(), 'octane-bridge-'));
+		await writeFakePackage(root, 'lazy-lib', {
+			'index.js': `
+				import { lazy, Suspense } from 'react';
+				export const Panel = lazy(() => import('./panel.js'));
+				export { Suspense };
+			`,
+		});
+		const report = await bridgeReport({ packageName: 'lazy-lib', projectRoot: root });
+		expect(report.apis.find((row) => row.name === 'lazy').status).toBe('same');
+		expect(report.verdict).toBe('works-out-of-the-box');
+	});
+
+	it('synchronous react-dom/server rendering works through the facade', async () => {
+		const root = await mkdtemp(join(tmpdir(), 'octane-bridge-'));
+		await writeFakePackage(root, 'sync-ssr', {
+			'index.js': `
+				import { renderToString, renderToStaticMarkup } from 'react-dom/server';
+				export const ssr = (el) => renderToString(el);
+				export const email = (el) => renderToStaticMarkup(el);
+			`,
+		});
+		const report = await bridgeReport({ packageName: 'sync-ssr', projectRoot: root });
+		expect(report.apis.find((row) => row.name === 'renderToString').status).toBe('same');
+		expect(report.apis.find((row) => row.name === 'renderToStaticMarkup').status).toBe('same');
+		expect(report.verdict).toBe('works-out-of-the-box');
+	});
+
+	it('reports Profiler as a caveat, not a blocker', async () => {
+		const root = await mkdtemp(join(tmpdir(), 'octane-bridge-'));
+		await writeFakePackage(root, 'profiled', {
+			'index.js': `
+				import { Profiler } from 'react';
+				export const Wrapped = (props) => Profiler({ id: 'x', children: props.children });
+			`,
+		});
+		const report = await bridgeReport({ packageName: 'profiled', projectRoot: root });
+		expect(report.verdict).toBe('works-with-caveats');
+	});
+
 	it('reports streaming SSR entry points as has-unsupported-apis', async () => {
 		const root = await mkdtemp(join(tmpdir(), 'octane-bridge-'));
 		await writeFakePackage(root, 'streamer', {

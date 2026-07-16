@@ -52,9 +52,11 @@ package that never exercises them still works:
 
 - legacy/`UNSAFE_` pre-render class lifecycles and `getSnapshotBeforeUpdate`,
 - StrictMode development double render/effect/ref cycles,
-- synchronous and streaming `react-dom/server` entry points
-  (`renderToString`, `renderToPipeableStream`, …) — application SSR uses
-  `octane/server` instead,
+- streaming `react-dom/server` entry points (`renderToPipeableStream`,
+  `renderToReadableStream`, `resume*`) — the facade maps the synchronous
+  `renderToString`/`renderToStaticMarkup` onto Octane's renderers, but
+  application-level streaming SSR uses `octane/server`'s own streaming entry
+  points instead,
 - React Server Components and React private renderer internals,
 - `findDOMNode` (removed in React 19 too).
 

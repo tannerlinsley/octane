@@ -25,6 +25,8 @@ describe('@octanejs/mcp-server helpers', () => {
 		expect(areaForPath('packages/zustand/src/index.ts')).toBe('ecosystem-binding');
 		expect(areaForPath('packages/radix/src/index.ts')).toBe('ecosystem-binding');
 		expect(areaForPath('packages/octane-mcp-server/src/index.js')).toBe('mcp-server');
+		expect(areaForPath('packages/react-compat/src/shim.ts')).toBe('react-compat');
+		expect(areaForPath('packages/react-wrapper/src/index.ts')).toBe('react-wrapper');
 		expect(areaForPath('packages/adapter-vercel/src/index.ts')).toBe('deploy-adapter');
 		expect(areaForPath('packages/octane-evals/tools/run.mjs')).toBe('evals');
 		expect(areaForPath('website/src/pages/index.tsrx')).toBe('website');
@@ -32,9 +34,11 @@ describe('@octanejs/mcp-server helpers', () => {
 		expect(areaForPath('.rulesync/rules/project.md')).toBe('rulesync-source');
 	});
 
-	it('recommends the adapter, evals, and website test projects', () => {
+	it('recommends the bridge, adapter, evals, and website test projects', () => {
 		const commands = validationFor(
 			[
+				'packages/react-compat/src/shim.ts',
+				'packages/react-wrapper/src/index.ts',
 				'packages/adapter-vercel/src/index.ts',
 				'packages/octane-evals/tools/run.mjs',
 				'website/src/pages/index.tsrx',
@@ -42,6 +46,12 @@ describe('@octanejs/mcp-server helpers', () => {
 			'feature',
 		);
 
+		expect(commands).toContain(
+			'./node_modules/.bin/vitest run packages/react-compat/tests --project react-compat-native --project react-compat-ssr',
+		);
+		expect(commands).toContain(
+			'./node_modules/.bin/vitest run packages/react-wrapper/tests --project react-wrapper',
+		);
 		expect(commands).toContain(
 			'./node_modules/.bin/vitest run packages/adapter-vercel/tests --project adapter-vercel',
 		);

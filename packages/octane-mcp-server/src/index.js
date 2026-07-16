@@ -33,13 +33,29 @@ export const REPO_SKILLS = {
 	triage: '.ai/skills/triage.md',
 };
 
-const BENCHMARKS = {
-	dbmon: '@benchmarks/dbmon',
-	'js-framework': 'octane-js-framework-benchmarks',
-	news: '@benchmarks/news',
-	'recursive-context': '@benchmarks/recursive-context',
-	'signal-favoring': '@benchmarks/signal-favoring',
-};
+// Suite names from the unified runner manifest (`SUITES` in
+// benchmarks/bench.mjs; `node benchmarks/bench.mjs --list` prints the same
+// set). index.test.js keeps this list in sync with the runner.
+export const BENCHMARK_SUITES = [
+	'js-framework',
+	'js-framework-reorder',
+	'todomvc',
+	'chat-stream',
+	'dbmon',
+	'recursive-context',
+	'signal-favoring',
+	'news',
+	'effectful-list',
+	'memo-wall',
+	'portal-swarm',
+	'ssr-throughput',
+	'streaming-ssr',
+	'dbmon-deopt',
+	'js-framework-deopt',
+	'async-waterfall',
+	'codegen-size',
+	'bundle-size',
+];
 
 const DEFAULT_TIMEOUT_MS = 120_000;
 
@@ -63,12 +79,17 @@ export function areaForPath(path) {
 	if (path.startsWith('packages/rspack-plugin-octane/')) return 'rspack-plugin';
 	if (path.startsWith('packages/rsbuild-plugin-octane/')) return 'rsbuild-plugin';
 	if (path.startsWith('packages/vite-plugin-octane/')) return 'vite-plugin';
+	if (path.startsWith('packages/adapter-vercel/')) return 'deploy-adapter';
+	if (path.startsWith('packages/react-compat/')) return 'react-compat';
+	if (path.startsWith('packages/react-wrapper/')) return 'react-wrapper';
+	if (path.startsWith('packages/octane-evals/')) return 'evals';
 	if (path.startsWith('packages/octane-mcp-server/')) return 'mcp-server';
 	const packageMatch = path.match(/^packages\/([^/]+)\//);
 	if (packageMatch && KNOWN_BINDING_PACKAGE_DIRS.has(packageMatch[1])) {
 		return 'ecosystem-binding';
 	}
 	if (path.startsWith('benchmarks/')) return 'benchmark';
+	if (path.startsWith('website/')) return 'website';
 	if (path.startsWith('.rulesync/')) return 'rulesync-source';
 	if (path.startsWith('.ai/') || path.startsWith('.codex/') || path.startsWith('.claude/')) {
 		return 'agent-instructions';
@@ -105,15 +126,59 @@ export function validationFor(paths, taskKind) {
 			'./node_modules/.bin/vitest run packages/octane-mcp-server --project octane-mcp-server',
 		);
 	}
+	if (areas.has('react-compat')) {
+		commands.add(
+			'./node_modules/.bin/vitest run packages/react-compat/tests --project react-compat-native --project react-compat-ssr',
+		);
+	}
+	if (areas.has('react-wrapper')) {
+		commands.add(
+			'./node_modules/.bin/vitest run packages/react-wrapper/tests --project react-wrapper',
+		);
+	}
+	if (areas.has('evals')) {
+		commands.add(
+			'./node_modules/.bin/vitest run packages/octane-evals/tests --project octane-evals',
+		);
+	}
+	if (areas.has('website')) {
+		commands.add('./node_modules/.bin/vitest run website/tests --project website');
+	}
+	if (areas.has('metaframework-core')) {
+		commands.add('./node_modules/.bin/vitest run packages/app-core/tests --project app-core');
+	}
+	if (areas.has('rspack-plugin')) {
+		commands.add(
+			'./node_modules/.bin/vitest run packages/rspack-plugin-octane/tests --project rspack-plugin',
+		);
+	}
+	if (areas.has('rsbuild-plugin')) {
+		commands.add(
+			'./node_modules/.bin/vitest run packages/rsbuild-plugin-octane/tests --project rsbuild-plugin',
+		);
+	}
+	if (areas.has('vite-plugin')) {
+		commands.add(
+			'./node_modules/.bin/vitest run packages/vite-plugin-octane/tests --project vite-plugin',
+		);
+	}
+	if (areas.has('deploy-adapter')) {
+		commands.add(
+			'./node_modules/.bin/vitest run packages/adapter-vercel/tests --project adapter-vercel',
+		);
+	}
 	if (
 		areas.has('metaframework-core') ||
 		areas.has('rspack-plugin') ||
 		areas.has('rsbuild-plugin') ||
-		areas.has('vite-plugin')
+		areas.has('vite-plugin') ||
+		areas.has('deploy-adapter')
 	) {
 		commands.add('pnpm typecheck');
 	}
-	if (areas.has('benchmark') || taskKind === 'performance') commands.add('pnpm bench');
+	if (areas.has('benchmark') || taskKind === 'performance') {
+		commands.add('node benchmarks/bench.mjs --quick --ratios');
+	}
 	if (taskKind === 'api' || taskKind === 'core' || taskKind === 'package')
 		commands.add('pnpm typecheck');
 	commands.add('pnpm format:check');
@@ -182,15 +247,14 @@ export async function scaffoldReactPort(repoRoot, input) {
 }
 
 export async function runBenchmark(repoRoot, input) {
-	const args =
-		input.benchmark === 'all'
-			? ['bench']
-			: ['--filter', BENCHMARKS[input.benchmark], 'run', 'bench'];
-	const result = await runCommand('pnpm', args, {
+	const args = ['benchmarks/bench.mjs'];
+	if (input.benchmark && input.benchmark !== 'all') args.push(input.benchmark);
+	if (input.quick) args.push('--quick');
+	const result = await runCommand(process.execPath, args, {
 		cwd: repoRoot,
-		timeoutMs: input.timeoutMs ?? 300_000,
+		timeoutMs: input.timeoutMs ?? 600_000,
 	});
-	return { command: ['pnpm', ...args], benchmark: input.benchmark, ...result };
+	return { command: [process.execPath, ...args], benchmark: input.benchmark, ...result };
 }
 
 export async function issueContext(repoRoot, input) {
@@ -389,9 +453,10 @@ function registerRepoTools(server, repoRoot) {
 		{
 			title: 'Run Octane benchmark',
 			description:
-				'Run one of the known Octane benchmark workspaces, or all benchmarks via pnpm bench.',
+				'Run benchmark suites through the unified runner (node benchmarks/bench.mjs): one manifest suite by name, or every suite with "all". Set quick for the reduced-iteration smoke pass.',
 			inputSchema: {
-				benchmark: z.enum(['all', ...Object.keys(BENCHMARKS)]).default('all'),
+				benchmark: z.enum(['all', ...BENCHMARK_SUITES]).default('all'),
+				quick: z.boolean().default(false),
 				timeoutMs: z.number().int().positive().optional(),
 			},
 		},

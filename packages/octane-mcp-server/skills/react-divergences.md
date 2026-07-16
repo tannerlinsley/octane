@@ -81,7 +81,9 @@ falsy parts drop out. React coerces an array to `"a,b"`; Octane yields `"a b"`.
 
 ## Not present at all
 
-- Class components (rewrite as function components).
+- Class components in Octane-native code (`@octanejs/react-compat` runs class
+  components from unmodified React packages, minus legacy pre-render
+  lifecycles).
 - Server Components / `'use client'` / `'use server'`.
 - StrictMode double-invoke (renders and effects run once).
 - `forwardRef` (refs are props, React 19 style).

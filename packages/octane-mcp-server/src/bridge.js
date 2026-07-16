@@ -189,26 +189,29 @@ export const REACT_API_MAP = {
 	},
 	StrictMode: {
 		status: 'rewrite',
-		note: 'Not present, and there is no double-invoke. Drop the wrapper.',
+		note: 'Inert wrapper under react-compat — development double-invoke is not emulated. Octane-native code drops the wrapper.',
 	},
-	Profiler: { status: 'unsupported', note: 'Not present.' },
+	Profiler: {
+		status: 'partial',
+		note: 'Inert pass-through wrapper under react-compat: children render, onRender timings never fire. Not present for Octane-native code.',
+	},
 	SuspenseList: { status: 'unsupported', note: 'Not present.' },
 	findDOMNode: { status: 'unsupported', note: 'Removed in React 19 too. Use refs.' },
 	renderToString: {
-		status: 'rewrite',
-		note: 'Use renderToString() from octane/server (sync) or prerender() from octane/static (async, awaits Suspense); both return { html, css }.',
+		status: 'same',
+		note: "Works through react-compat's react-dom/server facade (hydratable markup). Octane-native servers use renderToString from octane/server, which returns { html, css }; prerender from octane/static awaits Suspense data.",
 	},
 	renderToStaticMarkup: {
-		status: 'rewrite',
-		note: 'Use renderToStaticMarkup() from octane/server (clean, non-hydratable HTML; returns { html, css }).',
+		status: 'same',
+		note: "Works through react-compat's react-dom/server facade (clean, non-hydratable HTML). Octane-native servers use renderToStaticMarkup from octane/server.",
 	},
 	renderToPipeableStream: {
-		status: 'rewrite',
-		note: 'Supported natively: import renderToPipeableStream from octane/server (Octane argument convention: component, props?, options?; returns { pipe, abort } with onShellReady/onShellError/onAllReady StreamOptions).',
+		status: 'unsupported',
+		note: "react-compat's react-dom/server facade keeps streaming entries as targeted errors (React's stream contract is not mapped). Octane itself ships renderToPipeableStream under octane/server — stream at the application boundary instead.",
 	},
 	renderToReadableStream: {
-		status: 'rewrite',
-		note: 'Supported natively: import renderToReadableStream from octane/server (Octane argument convention; resolves with a ReadableStream once the shell is ready, same StreamOptions).',
+		status: 'unsupported',
+		note: "react-compat's react-dom/server facade keeps streaming entries as targeted errors (React's stream contract is not mapped). Octane itself ships renderToReadableStream under octane/server — stream at the application boundary instead.",
 	},
 	onChange: {
 		status: 'rewrite',
