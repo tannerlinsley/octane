@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { configDefaults, defineConfig } from 'vitest/config';
 import { octane } from './packages/octane/src/compiler/vite.js';
 import { octaneMdx } from './packages/mdx/src/vite.js';
+import { react as reactCompat } from './packages/react-compat/src/vite.js';
 import { stylex } from './packages/stylex/src/vite.js';
 import { threeRenderers as THREE_RENDERERS } from './packages/three/src/config.ts';
 import { websiteMdxOptions } from './website/mdx-options.ts';
@@ -1592,6 +1593,48 @@ export default defineConfig({
 					environment: 'node',
 					globals: false,
 				},
+			},
+			{
+				// React runtime compatibility: unmodified npm React packages running on
+				// Octane through the react-compat facades (client side).
+				root: resolve(import.meta.dirname, 'packages/react-compat'),
+				test: {
+					name: 'react-compat-native',
+					include: ['tests/native-packages.test.ts', 'tests/edge-cases.test.ts'],
+					environment: 'jsdom',
+					globals: false,
+					deps: {
+						optimizer: {
+							client: {
+								enabled: true,
+								include: ['jotai', 'react-error-boundary', 'react-hook-form', 'react-redux'],
+							},
+						},
+					},
+				},
+				plugins: [octane({ compat: [reactCompat()] })],
+			},
+			{
+				test: {
+					name: 'react-compat-ssr',
+					include: ['packages/react-compat/tests/native-ssr.test.ts'],
+					environment: 'node',
+					globals: false,
+				},
+				plugins: [reactCompat()],
+			},
+			{
+				// The reverse bridge direction: REAL react/react-dom host an Octane
+				// root. No compat aliasing here — `react` must stay React; the octane
+				// plugin only compiles the `.tsrx` fixtures.
+				root: resolve(import.meta.dirname, 'packages/react-wrapper'),
+				test: {
+					name: 'react-wrapper',
+					include: ['tests/**/*.test.ts'],
+					environment: 'jsdom',
+					globals: false,
+				},
+				plugins: [octane()],
 			},
 			{
 				test: {

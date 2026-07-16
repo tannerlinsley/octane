@@ -15,6 +15,10 @@ const SPECIAL_ROLES = new Map([
 	['@octanejs/adapter-vercel', 'deployment adapter'],
 	['@octanejs/mcp-server', 'agent tooling'],
 	['@octanejs/evals', 'evaluation tooling'],
+	// The bi-directional React bridge is infrastructure, not a port of one
+	// upstream library, so the binding status.json contract does not apply.
+	['@octanejs/react-compat', 'React compatibility bridge'],
+	['@octanejs/react-wrapper', 'React interop bridge'],
 ]);
 
 const OCTANE_SINGLETON_CONSUMERS = new Set([
@@ -22,6 +26,8 @@ const OCTANE_SINGLETON_CONSUMERS = new Set([
 	'@octanejs/rspack-plugin',
 	'@octanejs/rsbuild-plugin',
 	'@octanejs/vite-plugin',
+	'@octanejs/react-compat',
+	'@octanejs/react-wrapper',
 ]);
 
 function readJson(file) {

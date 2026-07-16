@@ -59,12 +59,15 @@ maintainer tools):
 ### `octane_bridge_react_package`
 
 Scans a React package (by name from `node_modules`, or any source directory by
-path) for React API usage and returns an Octane compatibility report: which
-APIs map one-to-one, which need rewrites (`forwardRef`, class components,
-synthetic `onChange`, `react-dom/server` imports), whether a
-framework-agnostic core can be reused verbatim, whether an official
-`@octanejs/*` binding already exists, an overall verdict (`bridgeable`,
-`bridgeable-with-rewrites`, `needs-rework`), and a step-by-step plan.
+path) for React API usage and returns an Octane compatibility report. React
+packages run unmodified on Octane through `@octanejs/react-compat`
+(`octane({ compat: [react()] })` in the Vite config); the report says whether
+this one works out of the box, which contracts are partial (class bailout
+timing) or unsupported (legacy class lifecycles, streaming SSR,
+`findDOMNode`), whether a framework-agnostic core can back an Octane-native
+entry, whether an official `@octanejs/*` binding already exists, an overall
+verdict (`works-out-of-the-box`, `works-with-caveats`,
+`has-unsupported-apis`), and a step-by-step plan.
 
 ```json
 { "package": "jotai", "projectRoot": "/path/to/my-app" }
@@ -72,7 +75,9 @@ framework-agnostic core can be reused verbatim, whether an official
 
 ### `octane_bindings`
 
-Returns the map of React packages with maintained `@octanejs/*` ports. The map
+Returns the map of React packages with maintained `@octanejs/*` native ports —
+the performance option; the React originals also run through
+`@octanejs/react-compat`. The map
 lives in `src/bridge.js` (`KNOWN_BINDINGS`), and its tests derive the complete
 binding package set from the workspace manifests, so adding a published binding
 without registering its React-package mapping fails CI.
@@ -81,7 +86,8 @@ without registering its React-package mapping fails CI.
 
 Returns a skill by name. Bundled skills (shipped with this package):
 
-- `bridge-react-package` — the full workflow for porting a React library.
+- `bridge-react-package` — running React packages on Octane out of the box,
+  plus the native-port and Octane-inside-React paths.
 - `migrate-react-component` — React JSX to `.tsrx` conversion reference.
 - `react-divergences` — Octane's intentional differences from React.
 - `setup-ssr` — server rendering and hydration setup.
@@ -101,8 +107,7 @@ invariants, and validation commands.
 ### `octane_triage_paths`
 
 Classifies repository-relative paths by Octane area (compiler, core runtime,
-SSR, ecosystem binding, vite-plugin, deploy adapter, evals, website,
-mcp-server, benchmark, docs, RuleSync source).
+SSR, ecosystem binding, mcp-server, benchmark, docs, RuleSync source).
 
 ### `octane_validate_plan`
 
@@ -115,11 +120,8 @@ optionally writes the generated Vitest skeleton to an output file.
 
 ### `octane_benchmark`
 
-Runs benchmark suites through the unified runner (`node benchmarks/bench.mjs`):
-one manifest suite by name (`js-framework`, `todomvc`, `chat-stream`, `dbmon`,
-`news`, `ssr-throughput`, `streaming-ssr`, `codegen-size`, `bundle-size`, …) or
-every suite with `all`; `quick` selects the reduced-iteration smoke pass. The
-suite list mirrors the runner manifest and `node benchmarks/bench.mjs --list`.
+Runs a known benchmark workspace (`news`, `js-framework`, `recursive-context`,
+`signal-favoring`, `dbmon`) or all benchmarks.
 
 ### `octane_issue_context`
 

@@ -6,6 +6,14 @@
  * DOM runtime. Source eligibility, manifests, canonical IDs, dependency
  * discovery, and transforms live in ./bundler.js so other integrations share
  * exactly the same behavior.
+ *
+ * Adapter-level options:
+ *   - `compat`: compatibility plugins placed immediately after the compiler
+ *     (e.g. `react()` from @octanejs/react-compat/vite).
+ *   - `tsx`: compile `.tsx` through the full octane compiler (default `true`).
+ *     Set `false` when React owns `.tsx` in the project — incremental adoption
+ *     with @octanejs/react-wrapper, or React-authored islands rendered through
+ *     @octanejs/react-compat — so only `.tsrx` is octane-compiled.
  */
 import { createHash } from 'node:crypto';
 import { realpathSync } from 'node:fs';
@@ -150,10 +158,12 @@ export function octane(options = {}) {
 	// Profiling is intentionally independent of serve/HMR. `ssr: true` is the
 	// adapter's explicit server-only override, where client profiling must stay off.
 	const profileEnabled = options.profile === true && options.ssr !== true;
+	const compat = options.compat ?? [];
 	let projectRoot = resolve(process.cwd());
 	let compiler = createOctaneCompiler({
 		root: projectRoot,
 		exclude: options.exclude,
+		tsx: options.tsx,
 		profile: profileEnabled,
 		parallelUse: options.parallelUse,
 		renderers: options.renderers,
@@ -166,13 +176,14 @@ export function octane(options = {}) {
 		compiler = createOctaneCompiler({
 			root: projectRoot,
 			exclude: options.exclude,
+			tsx: options.tsx,
 			profile: profileEnabled,
 			parallelUse: options.parallelUse,
 			renderers: options.renderers,
 		});
 	};
 
-	return {
+	const plugin = {
 		name: 'octane',
 		enforce: 'pre',
 		config(config) {
@@ -292,4 +303,5 @@ export function octane(options = {}) {
 			return loadVoidComponentImports(this, voidImports, id).then(transformWithProof);
 		},
 	};
+	return compat.length === 0 ? plugin : [plugin, ...compat];
 }

@@ -221,6 +221,10 @@ class OctaneBundlerCompiler {
 			this.realRoot = this.root;
 		}
 		this.exclude = [...(options.exclude ?? [])];
+		// `tsx: false` leaves `.tsx` to another JSX transform (React) so only
+		// `.tsrx` is octane-compiled — the mixed-renderer setup used by
+		// @octanejs/react-wrapper hosts and @octanejs/react-compat islands.
+		this.compileTsx = options.tsx !== false;
 		this.defaults = {
 			environment: options.environment ?? 'client',
 			hmr: normalizeHmrDialect(options.hmr),
@@ -344,7 +348,7 @@ class OctaneBundlerCompiler {
 	_isFullCompileSource(file, collected) {
 		return (
 			file.endsWith('.tsrx') ||
-			(file.endsWith('.tsx') && this._isInstalledOctaneSource(file, collected))
+			(this.compileTsx && file.endsWith('.tsx') && this._isInstalledOctaneSource(file, collected))
 		);
 	}
 

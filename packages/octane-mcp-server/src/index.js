@@ -33,29 +33,13 @@ export const REPO_SKILLS = {
 	triage: '.ai/skills/triage.md',
 };
 
-// Suite names from the unified runner manifest (`SUITES` in
-// benchmarks/bench.mjs; `node benchmarks/bench.mjs --list` prints the same
-// set). index.test.js keeps this list in sync with the runner.
-export const BENCHMARK_SUITES = [
-	'js-framework',
-	'js-framework-reorder',
-	'todomvc',
-	'chat-stream',
-	'dbmon',
-	'recursive-context',
-	'signal-favoring',
-	'news',
-	'effectful-list',
-	'memo-wall',
-	'portal-swarm',
-	'ssr-throughput',
-	'streaming-ssr',
-	'dbmon-deopt',
-	'js-framework-deopt',
-	'async-waterfall',
-	'codegen-size',
-	'bundle-size',
-];
+const BENCHMARKS = {
+	dbmon: '@benchmarks/dbmon',
+	'js-framework': 'octane-js-framework-benchmarks',
+	news: '@benchmarks/news',
+	'recursive-context': '@benchmarks/recursive-context',
+	'signal-favoring': '@benchmarks/signal-favoring',
+};
 
 const DEFAULT_TIMEOUT_MS = 120_000;
 
@@ -79,15 +63,12 @@ export function areaForPath(path) {
 	if (path.startsWith('packages/rspack-plugin-octane/')) return 'rspack-plugin';
 	if (path.startsWith('packages/rsbuild-plugin-octane/')) return 'rsbuild-plugin';
 	if (path.startsWith('packages/vite-plugin-octane/')) return 'vite-plugin';
-	if (path.startsWith('packages/adapter-vercel/')) return 'deploy-adapter';
-	if (path.startsWith('packages/octane-evals/')) return 'evals';
 	if (path.startsWith('packages/octane-mcp-server/')) return 'mcp-server';
 	const packageMatch = path.match(/^packages\/([^/]+)\//);
 	if (packageMatch && KNOWN_BINDING_PACKAGE_DIRS.has(packageMatch[1])) {
 		return 'ecosystem-binding';
 	}
 	if (path.startsWith('benchmarks/')) return 'benchmark';
-	if (path.startsWith('website/')) return 'website';
 	if (path.startsWith('.rulesync/')) return 'rulesync-source';
 	if (path.startsWith('.ai/') || path.startsWith('.codex/') || path.startsWith('.claude/')) {
 		return 'agent-instructions';
@@ -124,49 +105,15 @@ export function validationFor(paths, taskKind) {
 			'./node_modules/.bin/vitest run packages/octane-mcp-server --project octane-mcp-server',
 		);
 	}
-	if (areas.has('evals')) {
-		commands.add(
-			'./node_modules/.bin/vitest run packages/octane-evals/tests --project octane-evals',
-		);
-	}
-	if (areas.has('website')) {
-		commands.add('./node_modules/.bin/vitest run website/tests --project website');
-	}
-	if (areas.has('metaframework-core')) {
-		commands.add('./node_modules/.bin/vitest run packages/app-core/tests --project app-core');
-	}
-	if (areas.has('rspack-plugin')) {
-		commands.add(
-			'./node_modules/.bin/vitest run packages/rspack-plugin-octane/tests --project rspack-plugin',
-		);
-	}
-	if (areas.has('rsbuild-plugin')) {
-		commands.add(
-			'./node_modules/.bin/vitest run packages/rsbuild-plugin-octane/tests --project rsbuild-plugin',
-		);
-	}
-	if (areas.has('vite-plugin')) {
-		commands.add(
-			'./node_modules/.bin/vitest run packages/vite-plugin-octane/tests --project vite-plugin',
-		);
-	}
-	if (areas.has('deploy-adapter')) {
-		commands.add(
-			'./node_modules/.bin/vitest run packages/adapter-vercel/tests --project adapter-vercel',
-		);
-	}
 	if (
 		areas.has('metaframework-core') ||
 		areas.has('rspack-plugin') ||
 		areas.has('rsbuild-plugin') ||
-		areas.has('vite-plugin') ||
-		areas.has('deploy-adapter')
+		areas.has('vite-plugin')
 	) {
 		commands.add('pnpm typecheck');
 	}
-	if (areas.has('benchmark') || taskKind === 'performance') {
-		commands.add('node benchmarks/bench.mjs --quick --ratios');
-	}
+	if (areas.has('benchmark') || taskKind === 'performance') commands.add('pnpm bench');
 	if (taskKind === 'api' || taskKind === 'core' || taskKind === 'package')
 		commands.add('pnpm typecheck');
 	commands.add('pnpm format:check');
@@ -235,14 +182,15 @@ export async function scaffoldReactPort(repoRoot, input) {
 }
 
 export async function runBenchmark(repoRoot, input) {
-	const args = ['benchmarks/bench.mjs'];
-	if (input.benchmark && input.benchmark !== 'all') args.push(input.benchmark);
-	if (input.quick) args.push('--quick');
-	const result = await runCommand(process.execPath, args, {
+	const args =
+		input.benchmark === 'all'
+			? ['bench']
+			: ['--filter', BENCHMARKS[input.benchmark], 'run', 'bench'];
+	const result = await runCommand('pnpm', args, {
 		cwd: repoRoot,
-		timeoutMs: input.timeoutMs ?? 600_000,
+		timeoutMs: input.timeoutMs ?? 300_000,
 	});
-	return { command: [process.execPath, ...args], benchmark: input.benchmark, ...result };
+	return { command: ['pnpm', ...args], benchmark: input.benchmark, ...result };
 }
 
 export async function issueContext(repoRoot, input) {
@@ -298,7 +246,7 @@ function registerUserTools(server, repoRoot, repoMode) {
 		{
 			title: 'Octane skill',
 			description:
-				'Return an Octane agent skill by name. Bundled skills cover working WITH octane in any project: bridging React packages, migrating React components to .tsrx, intentional React divergences, and SSR setup.' +
+				'Return an Octane agent skill by name. Bundled skills cover working WITH octane in any project: running React packages on Octane (and Octane inside React), migrating React components to .tsrx, intentional React divergences, and SSR setup.' +
 				(repoMode ? ' Repo skills cover octane maintainer workflows.' : ''),
 			inputSchema: {
 				name: z.enum(Object.keys(skills)),
@@ -316,7 +264,7 @@ function registerUserTools(server, repoRoot, repoMode) {
 		{
 			title: 'Bridge a React package to Octane',
 			description:
-				'Scan a React package (from node_modules by name, or any source directory by path) for React API usage and return an Octane compatibility report: which APIs map 1:1, which need rewrites (forwardRef, class components, synthetic onChange, react-dom/server imports), whether a framework-agnostic core can be reused verbatim, whether an official @octanejs binding already exists, and a step-by-step bridge plan. Follow up with the bridge-react-package skill for the full workflow.',
+				'Scan a React package (from node_modules by name, or any source directory by path) for React API usage and return an Octane compatibility report. React packages run unmodified on Octane through @octanejs/react-compat; the report says whether this one works out of the box, which contracts are partial or unsupported (legacy class lifecycles, streaming SSR, findDOMNode), whether an official @octanejs binding exists, and the optional Octane-native performance path. Follow up with the bridge-react-package skill for the full workflow.',
 			inputSchema: {
 				package: z
 					.string()
@@ -350,7 +298,7 @@ function registerUserTools(server, repoRoot, repoMode) {
 		{
 			title: 'List official Octane bindings',
 			description:
-				'Return the map of React packages that already have maintained @octanejs/* Octane ports. Check here before bridging by hand.',
+				'Return the map of React packages that already have maintained @octanejs/* Octane-native ports — the performance option. The React originals also run unmodified through @octanejs/react-compat.',
 			inputSchema: {},
 		},
 		async () => text(JSON.stringify(KNOWN_BINDINGS, null, 2)),
@@ -441,10 +389,9 @@ function registerRepoTools(server, repoRoot) {
 		{
 			title: 'Run Octane benchmark',
 			description:
-				'Run benchmark suites through the unified runner (node benchmarks/bench.mjs): one manifest suite by name, or every suite with "all". Set quick for the reduced-iteration smoke pass.',
+				'Run one of the known Octane benchmark workspaces, or all benchmarks via pnpm bench.',
 			inputSchema: {
-				benchmark: z.enum(['all', ...BENCHMARK_SUITES]).default('all'),
-				quick: z.boolean().default(false),
+				benchmark: z.enum(['all', ...Object.keys(BENCHMARKS)]).default('all'),
 				timeoutMs: z.number().int().positive().optional(),
 			},
 		},

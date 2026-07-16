@@ -3772,6 +3772,45 @@ function missingSlot(name: string): never {
 	);
 }
 
+// React compatibility hook cursor (@octanejs/react-compat). Components from
+// pre-compiled React packages have no compiler-injected slots; the compat
+// facade allocates stable slots by React's per-component call order instead.
+// Opt-in per scope via a WeakMap so native scopes carry no extra fields.
+const COMPAT_HOOK_SLOTS: symbol[] = [];
+const COMPAT_HOOK_STATE = new WeakMap<Scope, { index: number; count: number }>();
+
+export function beginCompatHookRender(): void {
+	const scope = CURRENT_SCOPE;
+	if (scope === null) throw new Error('Invalid React compatibility render.');
+	const state = COMPAT_HOOK_STATE.get(scope);
+	if (state) state.index = 0;
+	else COMPAT_HOOK_STATE.set(scope, { index: 0, count: -1 });
+}
+
+export function finishCompatHookRender(): void {
+	const state = CURRENT_SCOPE === null ? undefined : COMPAT_HOOK_STATE.get(CURRENT_SCOPE);
+	if (!state) return;
+	if (state.count >= 0 && state.count !== state.index) {
+		throw new Error(
+			'Rendered a different number of React compatibility hooks than during the previous render. ' +
+				'Components loaded through @octanejs/react-compat must follow the Rules of Hooks.',
+		);
+	}
+	state.count = state.index;
+}
+
+export function nextCompatHookSlot(): symbol {
+	const scope = CURRENT_SCOPE;
+	const state = scope === null ? undefined : COMPAT_HOOK_STATE.get(scope);
+	if (!state) {
+		throw new Error(
+			'Invalid hook call. React compatibility hooks can only run while Octane is rendering a component.',
+		);
+	}
+	const index = state.index++;
+	return (COMPAT_HOOK_SLOTS[index] ??= Symbol.for(`octane.react-compat.hook.${index}`));
+}
+
 // withSlot — establishes hook call-site identity via a per-render PATH STACK, so a
 // hook reached THROUGH a custom-hook wrapper combines the wrapper's call-site symbol
 // with its own. The compiler wraps CUSTOM hook calls only, as
@@ -4965,6 +5004,18 @@ class SuspenseException {
 
 function isSuspenseException(x: any): x is SuspenseException {
 	return x !== null && typeof x === 'object' && (x as any).__isSuspense === true;
+}
+
+// React ecosystem libraries (notably query/data routers) may suspend by
+// throwing a Promise directly instead of calling use(thenable). Normalize both
+// shapes at boundary catch sites while preserving Octane's internal sentinel.
+function suspenseThenable(x: any): TrackedThenable<any> | null {
+	if (isSuspenseException(x)) return x.thenable;
+	return x !== null &&
+		(typeof x === 'object' || typeof x === 'function') &&
+		typeof x.then === 'function'
+		? (x as TrackedThenable<any>)
+		: null;
 }
 
 const HYDRATION_REJECTION_SEED = Symbol('octane.hydration.rejection-seed');
@@ -11375,7 +11426,8 @@ function renderOffscreen(
 	try {
 		renderBlock(block);
 	} catch (err) {
-		if (isSuspenseException(err)) suspended = (err as SuspenseException).thenable;
+		const offscreenThenable = suspenseThenable(err);
+		if (offscreenThenable !== null) suspended = offscreenThenable;
 		else error = err;
 	} finally {
 		WIP_CAPTURE = prev;
@@ -12033,6 +12085,12 @@ function reconcileDeoptNode(
 		return document.createTextNode(s);
 	}
 	if (isHostDescriptor(value)) {
+		// Same element reference as the node's last render: React-parity bailout.
+		// An identical element object means "unchanged" — skip props AND children
+		// reconciliation. Foreign nodes parked inside (e.g. a React portal bridged
+		// through @octanejs/react-wrapper's children slot) survive because this
+		// subtree is never re-walked.
+		if (prev !== null && prev.nodeType === 1 && getDeoptDesc(prev) === value) return prev;
 		// `<svg>` opens the SVG namespace; descendants inherit it (a `foreignObject`
 		// switches ITS children back to HTML — see childNs below). SVG-ONLY tags
 		// (`g`, `rect`, `path`, … — see SVG_ONLY_TAGS) imply it with no `<svg>`
@@ -14165,9 +14223,10 @@ export function tryBlock(
 			releaseHeldTransition(s);
 			s.pendingThenable = null;
 		} catch (err) {
-			if (isSuspenseException(err)) {
+			const thenable = suspenseThenable(err);
+			if (thenable !== null) {
 				if (s.propagateSuspense) throw err;
-				handleSuspense(s, err.thenable, s.tryBlock);
+				handleSuspense(s, thenable, s.tryBlock);
 			} else switchToCatch(s, err);
 		}
 	} else {
@@ -14300,9 +14359,10 @@ function mountTry(state: TrySlot): void {
 		renderBlock(b);
 		state.hasResolved = true;
 	} catch (err) {
-		if (isSuspenseException(err)) {
+		const thenable = suspenseThenable(err);
+		if (thenable !== null) {
 			if (state.propagateSuspense) throw err;
-			handleSuspense(state, err.thenable, b);
+			handleSuspense(state, thenable, b);
 		} else {
 			const adoptServerCatch = hydration?.isRejection(err) === true;
 			if (state.tryBlock) {
@@ -14737,8 +14797,9 @@ function commitResumeInner(state: TrySlot): void {
 					refDetachQueue.splice(refDetachCheckpoint);
 					restoreSubtreeEffectDeps(state.tryBlock, effectDeps);
 					discardOffscreenCapture(resumeCapture);
-					if (isSuspenseException(renderError)) {
-						handleSuspense(state, renderError.thenable, state.tryBlock);
+					const thenable = suspenseThenable(renderError);
+					if (thenable !== null) {
+						handleSuspense(state, thenable, state.tryBlock);
 					} else {
 						switchToCatch(state, renderError);
 					}
@@ -14908,13 +14969,14 @@ function attemptHiddenReveal(state: TrySlot, scheduledMode?: 'urgent' | 'transit
 		// may escape into the parent commit while the fallback remains visible.
 		restoreSubtreeEffectDeps(tryBlock, effectDeps);
 		discardOffscreenCapture(hiddenCapture);
-		if (isSuspenseException(thrown)) {
+		const suspendedThenable = suspenseThenable(thrown);
+		if (suspendedThenable !== null) {
 			deactivateScope(tryBlock);
 			// Still suspended — re-stash the try DOM (the pending arm never moved)
 			// and keep/refresh the resume wiring for the (possibly new) thenable.
 			softDetachTryBlock(state);
 			tryBlock.inactive = true;
-			attachResume(state, thrown.thenable);
+			attachResume(state, suspendedThenable);
 		} else {
 			switchToCatch(state, thrown);
 			// A saved-DOM retry can run directly from a thenable microtask, outside
@@ -15869,19 +15931,20 @@ function findTryHandler(block: Block | null): ((err: any) => void) | null {
  * which surfaces to the scheduler's caller (matches the prior behavior).
  */
 function handleRenderError(block: Block, err: any): void {
-	if (isSuspenseException(err)) {
+	const thenable = suspenseThenable(err);
+	if (thenable !== null) {
 		let b: Block | null = block;
 		while (b) {
 			const h = (b as any).__suspenseHandler;
 			if (h) {
-				h(err.thenable, block);
+				h(thenable, block);
 				return;
 			}
 			b = b.parentBlock;
 		}
 		const external = rendererRegionSuspenseHandler(block);
 		if (external !== null) {
-			external(err.thenable);
+			external(thenable);
 			return;
 		}
 		throw err;

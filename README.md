@@ -502,7 +502,13 @@ generated from the workspace manifests in
   graders, public reference implementations, and reproducible evaluation
   tooling. It measures framework use rather than monorepo repair. Active
   held-out material stays outside the repository.
-- The `@octanejs/*` framework bindings — each an octane port of a React library:
+- The bi-directional React bridge:
+  [`@octanejs/react-compat`](./packages/react-compat) runs unmodified React packages
+  **on Octane** (out of the box, via `octane({ compat: [react()] })`), and
+  [`@octanejs/react-wrapper`](./packages/react-wrapper) mounts Octane components
+  **inside a React app** for incremental adoption.
+- The `@octanejs/*` framework bindings — each an octane port of a React library,
+  the native performance option next to `react-compat`'s out-of-the-box path:
   [`zustand`](./packages/zustand), [`jotai`](./packages/jotai),
   [`ai`](./packages/tanstack-ai), [`query`](./packages/tanstack-query),
   [`store`](./packages/tanstack-store),

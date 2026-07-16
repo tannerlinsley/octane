@@ -190,6 +190,11 @@ export {
 	warmMemo,
 	warmChild,
 	provideContext,
+	// React compatibility hook cursor (@octanejs/react-compat): call-order slot
+	// allocation for components from pre-compiled React packages.
+	beginCompatHookRender,
+	finishCompatHookRender,
+	nextCompatHookSlot,
 	mountFragmentRef,
 	FragmentInstance,
 	hmr,

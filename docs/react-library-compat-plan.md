@@ -1,5 +1,14 @@
 # Validating Octane via real React libraries — plan
 
+> **Status note (2026-07):** this plan predates `@octanejs/react-compat`, which now
+> runs unmodified React packages on Octane at runtime (hook dispatch by call order,
+> automatic JSX, ReactDOM facades — see `packages/react-compat/`). The "cannot run
+> on Octane at all" framing below therefore no longer holds for CONSUMING a React
+> package; it still holds for what this plan is actually about: building
+> Octane-NATIVE `@octanejs/*` bindings (the performance path) and using each
+> library's own test suite as a parity oracle. The reverse bridge —
+> Octane inside a React app — is `@octanejs/react-wrapper`.
+>
 > This document covers adapting React library bindings so they run **on Octane**.
 > For the inverse architecture—rendering compiled Octane islands inside an existing
 > real React 19 tree—see

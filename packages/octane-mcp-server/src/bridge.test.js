@@ -73,7 +73,7 @@ describe('bridgeReport', () => {
 		return dir;
 	}
 
-	it('reports a same-name-hooks package as bridgeable', async () => {
+	it('reports a same-name-hooks package as works-out-of-the-box', async () => {
 		const root = await mkdtemp(join(tmpdir(), 'octane-bridge-'));
 		await writeFakePackage(root, 'tiny-store', {
 			'index.js': `
@@ -86,12 +86,12 @@ describe('bridgeReport', () => {
 		const report = await bridgeReport({ packageName: 'tiny-store', projectRoot: root });
 		expect(report.version).toBe('1.2.3');
 		expect(report.filesScanned).toBe(1);
-		expect(report.verdict).toBe('bridgeable');
+		expect(report.verdict).toBe('works-out-of-the-box');
 		expect(report.apis.find((row) => row.name === 'useSyncExternalStore').status).toBe('same');
-		expect(report.plan.length).toBeGreaterThan(0);
+		expect(report.plan.join('\n')).toContain('@octanejs/react-compat');
 	});
 
-	it('reports forwardRef usage as bridgeable-with-rewrites', async () => {
+	it('forwardRef is absorbed by react-compat and stays works-out-of-the-box', async () => {
 		const root = await mkdtemp(join(tmpdir(), 'octane-bridge-'));
 		await writeFakePackage(root, 'ref-lib', {
 			'index.js': `
@@ -100,39 +100,10 @@ describe('bridgeReport', () => {
 			`,
 		});
 		const report = await bridgeReport({ packageName: 'ref-lib', projectRoot: root });
-		expect(report.verdict).toBe('bridgeable-with-rewrites');
-		expect(report.plan.join('\n')).toContain('forwardRef');
+		expect(report.verdict).toBe('works-out-of-the-box');
 	});
 
-	it('lazy plus Suspense stays bridgeable', async () => {
-		const root = await mkdtemp(join(tmpdir(), 'octane-bridge-'));
-		await writeFakePackage(root, 'lazy-lib', {
-			'index.js': `
-				import { lazy, Suspense } from 'react';
-				export const Panel = lazy(() => import('./panel.js'));
-				export { Suspense };
-			`,
-		});
-		const report = await bridgeReport({ packageName: 'lazy-lib', projectRoot: root });
-		expect(report.apis.find((row) => row.name === 'lazy').status).toBe('same');
-		expect(report.verdict).toBe('bridgeable');
-	});
-
-	it('routes streaming SSR entry points to octane/server as a rewrite', async () => {
-		const root = await mkdtemp(join(tmpdir(), 'octane-bridge-'));
-		await writeFakePackage(root, 'streamer', {
-			'index.js': `
-				import { renderToPipeableStream } from 'react-dom/server';
-				export const ssr = (el) => renderToPipeableStream(el);
-			`,
-		});
-		const report = await bridgeReport({ packageName: 'streamer', projectRoot: root });
-		expect(report.apis.find((row) => row.name === 'renderToPipeableStream').status).toBe('rewrite');
-		expect(report.verdict).toBe('bridgeable-with-rewrites');
-		expect(report.plan.join('\n')).toContain('octane/server');
-	});
-
-	it('reports class components as needs-rework', async () => {
+	it('reports class components as works-with-caveats', async () => {
 		const root = await mkdtemp(join(tmpdir(), 'octane-bridge-'));
 		await writeFakePackage(root, 'classy', {
 			'index.js': `
@@ -142,7 +113,36 @@ describe('bridgeReport', () => {
 		});
 		const report = await bridgeReport({ packageName: 'classy', projectRoot: root });
 		expect(report.classComponents).toBe(true);
-		expect(report.verdict).toBe('needs-rework');
+		expect(report.verdict).toBe('works-with-caveats');
+	});
+
+	it('reports legacy class lifecycles as has-unsupported-apis', async () => {
+		const root = await mkdtemp(join(tmpdir(), 'octane-bridge-'));
+		await writeFakePackage(root, 'legacy-class', {
+			'index.js': `
+				import React from 'react';
+				export class Old extends React.Component {
+					UNSAFE_componentWillReceiveProps(next) {}
+					render() { return null; }
+				}
+			`,
+		});
+		const report = await bridgeReport({ packageName: 'legacy-class', projectRoot: root });
+		expect(report.verdict).toBe('has-unsupported-apis');
+		expect(report.plan.join('\n')).toContain('UNSAFE_componentWillReceiveProps');
+	});
+
+	it('reports streaming SSR entry points as has-unsupported-apis', async () => {
+		const root = await mkdtemp(join(tmpdir(), 'octane-bridge-'));
+		await writeFakePackage(root, 'streamer', {
+			'index.js': `
+				import { renderToPipeableStream } from 'react-dom/server';
+				export const ssr = (el) => renderToPipeableStream(el);
+			`,
+		});
+		const report = await bridgeReport({ packageName: 'streamer', projectRoot: root });
+		expect(report.verdict).toBe('has-unsupported-apis');
+		expect(report.plan.join('\n')).toContain('renderToPipeableStream');
 	});
 
 	it('surfaces an existing official binding', async () => {
@@ -168,7 +168,7 @@ describe('bridgeReport', () => {
 		);
 		const report = await bridgeReport({ path: root });
 		expect(report.filesScanned).toBe(1);
-		expect(report.verdict).toBe('bridgeable');
+		expect(report.verdict).toBe('works-out-of-the-box');
 	});
 });
 
@@ -197,6 +197,10 @@ describe('KNOWN_BINDINGS', () => {
 			'@octanejs/vite-plugin',
 			'@octanejs/adapter-vercel',
 			'@octanejs/mcp-server',
+			// The bi-directional React bridge is infrastructure, not a port of one
+			// upstream React library.
+			'@octanejs/react-compat',
+			'@octanejs/react-wrapper',
 		]);
 		const packagesRoot = fileURLToPath(new URL('../..', import.meta.url));
 		const bindings = [];
