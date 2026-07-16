@@ -93,6 +93,7 @@ fallback through react-compat:
 | `@reduxjs/toolkit` | `@octanejs/redux-toolkit` |
 | `react-hook-form` | `@octanejs/hook-form` |
 | `@base-ui-components/react` | `@octanejs/base-ui` |
+| `dexie-react-hooks` | `@octanejs/dexie` |
 | `@dnd-kit/react` | `@octanejs/dnd-kit` |
 | `sonner` | `@octanejs/sonner` |
 | `recharts` | `@octanejs/recharts` |
