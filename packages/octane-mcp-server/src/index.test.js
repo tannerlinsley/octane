@@ -27,6 +27,7 @@ describe('@octanejs/mcp-server helpers', () => {
 		expect(areaForPath('packages/octane-mcp-server/src/index.js')).toBe('mcp-server');
 		expect(areaForPath('packages/react-compat/src/shim.ts')).toBe('react-compat');
 		expect(areaForPath('packages/react-wrapper/src/index.ts')).toBe('react-wrapper');
+		expect(areaForPath('packages/next-plugin-octane/src/index.js')).toBe('next-plugin');
 		expect(areaForPath('packages/adapter-vercel/src/index.ts')).toBe('deploy-adapter');
 		expect(areaForPath('packages/octane-evals/tools/run.mjs')).toBe('evals');
 		expect(areaForPath('website/src/pages/index.tsrx')).toBe('website');

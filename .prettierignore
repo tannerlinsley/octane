@@ -8,6 +8,8 @@ pnpm-workspace.yaml
 # Build outputs
 **/dist/
 **/build/
+**/.next/
+playground/octane-in-next/next-env.d.ts
 
 # Generated declaration files
 **/*.d.tsrx.ts

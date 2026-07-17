@@ -6,7 +6,7 @@ This inventory is derived from the manifests directly under `packages/`.
 Repository tooling imports the same discovery helper, so adding, renaming, or
 privatizing a package updates every package-wide check together.
 
-**39 publishable package(s), including 30 framework binding(s).**
+**40 publishable package(s), including 30 framework binding(s).**
 
 All publishable packages share the enforced Node.js engine baseline `>=22`.
 
@@ -27,6 +27,7 @@ All publishable packages share the enforced Node.js engine baseline `>=22`.
 | `@octanejs/mcp-server` | [`packages/octane-mcp-server`](../packages/octane-mcp-server) | agent tooling | `0.2.3` | 1 |
 | `@octanejs/mdx` | [`packages/mdx`](../packages/mdx) | framework binding | `0.1.4` | 4 |
 | `@octanejs/motion` | [`packages/motion`](../packages/motion) | framework binding | `0.1.6` | 1 |
+| `@octanejs/next-plugin` | [`packages/next-plugin-octane`](../packages/next-plugin-octane) | compiler integration | `0.0.0` | 1 |
 | `@octanejs/radix` | [`packages/radix`](../packages/radix) | framework binding | `0.1.6` | 1 |
 | `@octanejs/react-compat` | [`packages/react-compat`](../packages/react-compat) | React compatibility bridge | `0.1.0` | 15 |
 | `@octanejs/react-wrapper` | [`packages/react-wrapper`](../packages/react-wrapper) | React interop bridge | `0.1.0` | 1 |

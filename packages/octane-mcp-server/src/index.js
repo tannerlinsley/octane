@@ -78,6 +78,7 @@ export function areaForPath(path) {
 	if (path.startsWith('packages/app-core/')) return 'metaframework-core';
 	if (path.startsWith('packages/rspack-plugin-octane/')) return 'rspack-plugin';
 	if (path.startsWith('packages/rsbuild-plugin-octane/')) return 'rsbuild-plugin';
+	if (path.startsWith('packages/next-plugin-octane/')) return 'next-plugin';
 	if (path.startsWith('packages/vite-plugin-octane/')) return 'vite-plugin';
 	if (path.startsWith('packages/adapter-vercel/')) return 'deploy-adapter';
 	if (path.startsWith('packages/react-compat/')) return 'react-compat';
@@ -157,6 +158,11 @@ export function validationFor(paths, taskKind) {
 			'./node_modules/.bin/vitest run packages/rsbuild-plugin-octane/tests --project rsbuild-plugin',
 		);
 	}
+	if (areas.has('next-plugin')) {
+		commands.add(
+			'./node_modules/.bin/vitest run packages/next-plugin-octane/tests --project next-plugin',
+		);
+	}
 	if (areas.has('vite-plugin')) {
 		commands.add(
 			'./node_modules/.bin/vitest run packages/vite-plugin-octane/tests --project vite-plugin',
@@ -171,6 +177,7 @@ export function validationFor(paths, taskKind) {
 		areas.has('metaframework-core') ||
 		areas.has('rspack-plugin') ||
 		areas.has('rsbuild-plugin') ||
+		areas.has('next-plugin') ||
 		areas.has('vite-plugin') ||
 		areas.has('deploy-adapter')
 	) {

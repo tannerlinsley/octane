@@ -35,6 +35,9 @@ packages:
 allowBuilds:
   esbuild: true
   playwright: true
+  # sharp's native build only serves next/image optimization, which the
+  # octane-in-next playground does not use (pulled transitively via next).
+  sharp: false
   # tldjs's postinstall is a no-op unless npm_config_tldjs_update_rules=true, and
   # it ships a bundled rules.json — so its build is not needed (pulled transitively
   # via rulesync). Explicitly declined to silence the ignored-builds warning.
@@ -44,7 +47,7 @@ allowBuilds:
 esrap_common: &esrap_common ^2.2.9
 
 overrides:
-  esrap: *esrap_common
+  esrap: ^2.2.9
   # Solid 2.0 SSR alignment: vite-plugin-solid@3.0.0-next.5 pulls
   # babel-preset-solid@2.0.0-beta.7 transitively (→ babel-plugin-jsx-dom-expressions
   # 0.41, which still EMITS the `ssrRunInScope` SSR helper), but @solidjs/web@2.0.0-beta.14
@@ -181,7 +184,7 @@ catalogs:
     '@use-gesture/core': 10.3.1
     devalue: ^5.8.1
     esbuild: ^0.28.1
-    esrap: *esrap_common
+    esrap: ^2.2.9
     graphql: ^16.11.0
     happy-dom: ^20.10.6
     html-parse-stringify: ^3.0.1

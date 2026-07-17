@@ -107,8 +107,8 @@ invariants, and validation commands.
 ### `octane_triage_paths`
 
 Classifies repository-relative paths by Octane area (compiler, core runtime,
-SSR, ecosystem binding, react-compat, react-wrapper, vite-plugin, deploy
-adapter, evals, website, mcp-server, benchmark, docs, RuleSync source).
+SSR, ecosystem binding, react-compat, react-wrapper, next-plugin, vite-plugin,
+deploy adapter, evals, website, mcp-server, benchmark, docs, RuleSync source).
 
 ### `octane_validate_plan`
 

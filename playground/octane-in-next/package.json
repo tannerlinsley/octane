@@ -1,0 +1,27 @@
+{
+  "name": "octane-in-next-playground",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "A Next.js App Router app mounting compiled Octane .tsrx components as client islands through @octanejs/next-plugin and @octanejs/react-wrapper.",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "e2e": "node scripts/e2e.mjs"
+  },
+  "dependencies": {
+    "@octanejs/next-plugin": "workspace:*",
+    "@octanejs/react-wrapper": "workspace:*",
+    "next": "^15.5.0",
+    "octane": "workspace:*",
+    "react": "catalog:default",
+    "react-dom": "catalog:default"
+  },
+  "devDependencies": {
+    "@types/react": "catalog:default",
+    "@types/react-dom": "catalog:default",
+    "playwright": "catalog:default",
+    "typescript": "catalog:default"
+  }
+}

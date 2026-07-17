@@ -6,8 +6,11 @@
  * `children` hole ({@link useChildSlot}).
  *
  * Client-only: under React SSR the wrapper renders an empty container and
- * mounts Octane after hydration.
+ * mounts Octane after hydration. The 'use client' directive makes wrapped
+ * components valid client boundaries in RSC hosts (Next-like toolchains).
  */
+'use client';
+
 import {
 	createElement as reactCreateElement,
 	useRef,

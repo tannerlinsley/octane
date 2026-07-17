@@ -235,6 +235,7 @@ describe('KNOWN_BINDINGS', () => {
 			'@octanejs/app-core',
 			'@octanejs/rspack-plugin',
 			'@octanejs/rsbuild-plugin',
+			'@octanejs/next-plugin',
 			'@octanejs/vite-plugin',
 			'@octanejs/adapter-vercel',
 			'@octanejs/mcp-server',
