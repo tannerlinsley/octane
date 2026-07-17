@@ -1,5 +1,30 @@
 # octane
 
+## 0.1.9
+
+### Patch Changes
+
+- c704664: A synchronous commit during a controlled checkable's click dispatch (a handler
+  calling `flushSync` — press-state machinery does this) no longer reasserts the
+  stale controlled `checked` over the user's in-flight toggle. The platform
+  toggles a checkbox/radio before its click event and fires `input`/`change`
+  after it; reasserting in between reverted the toggle before any native handler
+  could read it. During that activation window the `checked` binding now uses
+  React's prop-diff semantics (an unchanged prop leaves the DOM drift for the
+  event-side restore; a prop that actually changed still writes), matching
+  React's observable behavior. The window covers the activated element and its
+  radio-group cousins: the platform unchecked the cousin as part of the same
+  toggle, and re-checking it mid-window would make the browser uncheck the
+  activated radio before its follow-up events fire. The rejection contract is
+  unchanged: an unheard or rejected toggle still snaps back after the follow-up
+  events.
+- 5b7d9ed: Discard a root's partially rendered tree when an uncaught initial render fails, preventing aborted effects from leaking into a later flush while keeping the root available for a recovery render.
+- 5b7d9ed: Make the direct Vite compiler integration discover raw Octane dependencies from the nearest parent package manifest when Vite uses a nested root, and publish first-party types for `octane/compiler/vite`.
+- 91b5f45: Infer omitted dependency arrays for locally declared custom hooks in
+  full-compiled `.tsrx`/`.tsx` modules that transparently forward their callback
+  and final dependency parameter to a supported hook.
+- 5b7d9ed: Compile template directives nested directly inside other directive bodies, including conditional keyed lists whose items own `@try` boundaries, in both client and server builds.
+
 ## 0.1.8
 
 ### Patch Changes
