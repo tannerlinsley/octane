@@ -22,25 +22,43 @@
     "url": "git+https://github.com/octanejs/octane.git",
     "directory": "packages/octane"
   },
-  "main": "src/index.ts",
-  "module": "src/index.ts",
-  "types": "src/index.ts",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "files": [
     "dist",
     "README.md"
   ],
   "exports": {
-    ".": "./src/index.ts",
-    "./server": "./src/server/index.ts",
-    "./static": "./src/static/index.ts",
-    "./constants": "./src/constants.ts",
-    "./profiling": "./src/profiling.ts",
-    "./universal": "./src/universal.ts",
-    "./compiler": "./src/compiler/index.js",
-    "./compiler/bundler": "./src/compiler/bundler.js",
-    "./compiler/renderers": "./src/compiler/renderers.js",
-    "./compiler/vite": "./src/compiler/vite.js",
-    "./compiler/volar": "./src/compiler/volar.js"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./server": {
+      "types": "./dist/server/index.d.ts",
+      "default": "./dist/server/index.js"
+    },
+    "./static": {
+      "types": "./dist/static/index.d.ts",
+      "default": "./dist/static/index.js"
+    },
+    "./constants": {
+      "types": "./dist/constants.d.ts",
+      "default": "./dist/constants.js"
+    },
+    "./profiling": {
+      "types": "./dist/profiling.d.ts",
+      "default": "./dist/profiling.js"
+    },
+    "./universal": {
+      "types": "./dist/universal.d.ts",
+      "default": "./dist/universal.js"
+    },
+    "./compiler": "./dist/compiler/index.js",
+    "./compiler/bundler": "./dist/compiler/bundler.js",
+    "./compiler/renderers": "./dist/compiler/renderers.js",
+    "./compiler/vite": "./dist/compiler/vite.js",
+    "./compiler/volar": "./dist/compiler/volar.js"
   },
   "publishConfig": {
     "access": "public",
